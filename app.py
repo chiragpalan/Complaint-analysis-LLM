@@ -5,7 +5,7 @@ import json
 # Initialize Groq client using Streamlit secrets
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-MODEL = "llama3-70b-8192"
+MODEL = "llama-3.3-70b-versatile"
 
 st.set_page_config(page_title="Banking Complaint Classifier", layout="centered")
 st.title("🏦 Banking Complaint Classifier")
