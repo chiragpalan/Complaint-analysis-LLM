@@ -20,9 +20,8 @@ def extract_json(text: str):
 # -------------------------------
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# ✅ Use a currently supported Groq model
+# Use a currently supported Groq model
 MODEL = "llama-3.3-70b-versatile"
-# (You can also use: "llama-3.1-8b-instant")
 
 # -------------------------------
 # Streamlit UI
@@ -35,7 +34,7 @@ st.set_page_config(
 st.title("🏦 Banking Complaint Classifier")
 st.write(
     "Paste a customer complaint below. "
-    "The system will identify category, sub-category, product/service, and urgency."
+    "The system will classify, summarize, and provide the theme."
 )
 
 # Input box
@@ -56,24 +55,24 @@ if submit:
         st.warning("Please enter a complaint before submitting.")
     else:
         with st.spinner("Classifying complaint..."):
+            # Updated prompt: also ask for summary and theme
             prompt = f"""
 You are a banking complaint classification engine.
 
 STRICT RULES:
 - Output ONLY a valid JSON object
-- Do NOT include explanations
-- Do NOT include markdown
-- Do NOT include backticks
+- Do NOT include explanations, markdown, or backticks
 - Do NOT include any text outside JSON
 
-The JSON schema MUST be exactly:
-
+The JSON schema MUST include:
 {{
   "category": "string",
   "sub_category": "string",
   "product_or_service": "string",
   "urgency": "Low | Medium | High",
-  "confidence": number
+  "confidence": number,
+  "summary": "string (2-3 line summary of complaint)",
+  "theme": "string (main topic/theme of complaint)"
 }}
 
 Complaint:
@@ -85,7 +84,7 @@ Complaint:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a strict JSON-only banking domain classifier."
+                        "content": "You are a strict JSON-only banking domain classifier and summarizer."
                     },
                     {
                         "role": "user",
@@ -111,31 +110,17 @@ Complaint:
         st.subheader("📊 Classification Result")
 
         col1, col2 = st.columns(2)
-        col1.text_input(
-            "Category",
-            value=result.get("category", ""),
-            disabled=True
-        )
-        col2.text_input(
-            "Sub-category",
-            value=result.get("sub_category", ""),
-            disabled=True
-        )
+        col1.text_input("Category", value=result.get("category", ""), disabled=True)
+        col2.text_input("Sub-category", value=result.get("sub_category", ""), disabled=True)
 
         col3, col4 = st.columns(2)
-        col3.text_input(
-            "Product / Service",
-            value=result.get("product_or_service", ""),
-            disabled=True
-        )
-        col4.text_input(
-            "Urgency",
-            value=result.get("urgency", ""),
-            disabled=True
-        )
+        col3.text_input("Product / Service", value=result.get("product_or_service", ""), disabled=True)
+        col4.text_input("Urgency", value=result.get("urgency", ""), disabled=True)
 
-        st.text_input(
-            "Confidence Score",
-            value=str(result.get("confidence", "")),
-            disabled=True
-        )
+        st.text_input("Confidence Score", value=str(result.get("confidence", "")), disabled=True)
+
+        st.subheader("📝 Summary")
+        st.text_area("Summary (2-3 lines)", value=result.get("summary", ""), height=100, disabled=True)
+
+        st.subheader("🎯 Theme")
+        st.text_input("Theme / Main Topic", value=result.get("theme", ""), disabled=True)
