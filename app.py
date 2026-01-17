@@ -1,36 +1,73 @@
 import streamlit as st
 from groq import Groq
+import json
 
-# Read API key from Streamlit secrets
+# Initialize Groq client using Streamlit secrets
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 MODEL = "llama3-70b-8192"
 
-st.set_page_config(page_title="Groq LLaMA 3 Chat", layout="centered")
-st.title("⚡ Groq + LLaMA 3 Chat")
+st.set_page_config(page_title="Banking Complaint Classifier", layout="centered")
+st.title("🏦 Banking Complaint Classifier")
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+st.write("Enter a customer complaint below and classify it automatically.")
 
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# Input box
+complaint_text = st.text_area(
+    "Customer Complaint",
+    placeholder="Type or paste the customer complaint here...",
+    height=150
+)
 
-prompt = st.chat_input("Ask anything...")
+# Submit button
+submit = st.button("Classify Complaint")
 
-if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+if submit:
+    if not complaint_text.strip():
+        st.warning("Please enter a complaint before submitting.")
+    else:
+        with st.spinner("Classifying complaint..."):
+            prompt = f"""
+You are a banking complaint classification system.
 
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=st.session_state.messages,
-        temperature=0.7,
-    )
+Analyze the complaint and return ONLY valid JSON with the following fields:
+- category
+- sub_category
+- product_or_service
+- urgency (Low, Medium, High)
+- confidence (0 to 1)
 
-    answer = response.choices[0].message.content
+Complaint:
+\"\"\"{complaint_text}\"\"\"
+"""
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
-    with st.chat_message("assistant"):
-        st.markdown(answer)
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {"role": "system", "content": "You are an expert banking domain analyst."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0
+            )
+
+            raw_output = response.choices[0].message.content
+
+            try:
+                result = json.loads(raw_output)
+            except json.JSONDecodeError:
+                st.error("Model returned invalid JSON. Try again.")
+                st.code(raw_output)
+                st.stop()
+
+        # Output boxes
+        st.subheader("📊 Classification Result")
+
+        col1, col2 = st.columns(2)
+        col1.text_input("Category", result.get("category", ""), disabled=True)
+        col2.text_input("Sub-category", result.get("sub_category", ""), disabled=True)
+
+        col3, col4 = st.columns(2)
+        col3.text_input("Product / Service", result.get("product_or_service", ""), disabled=True)
+        col4.text_input("Urgency", result.get("urgency", ""), disabled=True)
+
+        st.text_input("Confidence Score", str(result.get("confidence", "")), disabled=True)
