@@ -116,17 +116,28 @@ Complaint:
         # -------------------------------
         # Display results in cards
         # -------------------------------
-        st.markdown("<h2 style='text-align:center'>📊 Classification Result</h2>", unsafe_allow_html=True)
+        # -------------------------------
+# Display results in cards with hover info
+# -------------------------------
+st.markdown("<h2 style='text-align:center'>📊 Classification Result</h2>", unsafe_allow_html=True)
 
-        # Classification Fields
-        st.markdown("<div class='output-card'><b>Category:</b> {}</div>".format(result.get("category","")), unsafe_allow_html=True)
-        st.markdown("<div class='output-card'><b>Sub-category:</b> {}</div>".format(result.get("sub_category","")), unsafe_allow_html=True)
-        st.markdown("<div class='output-card'><b>Product / Service:</b> {}</div>".format(result.get("product_or_service","")), unsafe_allow_html=True)
-        st.markdown("<div class='output-card'><b>Urgency:</b> {}</div>".format(result.get("urgency","")), unsafe_allow_html=True)
-        st.markdown("<div class='output-card'><b>Confidence Score:</b> {}</div>".format(result.get("confidence","")), unsafe_allow_html=True)
+# Category, Sub-category, Product/Service
+st.markdown("<div class='output-card'><b>Category:</b> {}</div>".format(result.get("category","")), unsafe_allow_html=True)
+st.markdown("<div class='output-card'><b>Sub-category:</b> {}</div>".format(result.get("sub_category","")), unsafe_allow_html=True)
+st.markdown("<div class='output-card'><b>Product / Service:</b> {}</div>".format(result.get("product_or_service","")), unsafe_allow_html=True)
 
-        # Summary
-        st.markdown("<div class='output-card'><b>Summary:</b><br>{}</div>".format(result.get("summary","")), unsafe_allow_html=True)
+# Urgency with hover tooltip
+st.markdown(
+    f"<div class='output-card'><b>Urgency:</b> <span title='Indicates how critical the complaint is: High=Immediate attention, Medium=Moderate, Low=Can wait'>{result.get('urgency','')}</span></div>",
+    unsafe_allow_html=True
+)
 
-        # Theme
-        st.markdown("<div class='output-card'><b>Theme:</b> {}</div>".format(result.get("theme","")), unsafe_allow_html=True)
+# Confidence Score with hover tooltip
+st.markdown(
+    f"<div class='output-card'><b>Confidence Score:</b> <span title='The model\'s confidence in the classification (0=low, 1=high)'>{result.get('confidence','')}</span></div>",
+    unsafe_allow_html=True
+)
+
+# Summary and Theme
+st.markdown("<div class='output-card'><b>Summary:</b><br>{}</div>".format(result.get("summary","")), unsafe_allow_html=True)
+st.markdown("<div class='output-card'><b>Theme:</b> {}</div>".format(result.get("theme","")), unsafe_allow_html=True)
