@@ -1,16 +1,3 @@
 streamlit
 openai                # used as OpenAI-compatible client for Groq
 groq                  # optional: groq python SDK (not required if using openai client)
-chromadb
-sentence-transformers
-sqlglot
-python-dotenv
-pandas
-PyMuPDF
-pandas
-pymupdf 
-chromadb 
-sentence-transformers
-langchain 
-langchain-openai 
-openai
