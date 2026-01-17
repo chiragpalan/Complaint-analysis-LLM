@@ -7,72 +7,88 @@ import re
 # Helper: Robust JSON extraction
 # -------------------------------
 def extract_json(text: str):
-    """
-    Extracts the first valid JSON object from a string.
-    """
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if not match:
         raise ValueError("No JSON object found in model output")
     return json.loads(match.group())
 
 # -------------------------------
-# Groq client (API key from Streamlit Cloud secrets)
+# Groq client
 # -------------------------------
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-
-# Use a currently supported Groq model
 MODEL = "llama-3.3-70b-versatile"
 
 # -------------------------------
-# Streamlit UI
+# Custom CSS for better fonts and styling
 # -------------------------------
-st.set_page_config(
-    page_title="Banking Complaint Classifier",
-    layout="centered"
+st.markdown(
+    """
+    <style>
+    /* Set custom font for whole app */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+    html, body, [class*="css"]  {
+        font-family: 'Roboto', sans-serif;
+    }
+    /* Input box styling */
+    .stTextArea textarea {
+        font-size: 16px;
+        line-height: 1.5;
+    }
+    /* Cards for outputs */
+    .output-card {
+        background-color: #f7f9fc;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        margin-bottom: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
-st.title("🏦 Banking Complaint Classifier")
-st.write(
-    "Paste a customer complaint below. "
-    "The system will classify, summarize, and provide the theme."
-)
+# -------------------------------
+# Streamlit Layout
+# -------------------------------
+st.set_page_config(page_title="Banking Complaint Classifier", layout="wide")
 
-# Input box
+st.markdown("<h1 style='text-align:center'>🏦 Banking Complaint Classifier</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:gray;font-size:18px'>Paste a customer complaint to classify, summarize and detect the theme.</p>", unsafe_allow_html=True)
+
+# Input box in centered layout
 complaint_text = st.text_area(
-    "Customer Complaint",
-    placeholder="Enter the banking complaint here...",
-    height=160
+    "Enter Customer Complaint",
+    placeholder="Type or paste the complaint here...",
+    height=150
 )
 
-# Submit button
-submit = st.button("Classify Complaint")
+submit = st.button("🚀 Classify Complaint")
 
 # -------------------------------
 # On Submit
 # -------------------------------
 if submit:
     if not complaint_text.strip():
-        st.warning("Please enter a complaint before submitting.")
+        st.warning("⚠️ Please enter a complaint before submitting.")
     else:
-        with st.spinner("Classifying complaint..."):
-            # Updated prompt: also ask for summary and theme
+        with st.spinner("Analyzing complaint..."):
             prompt = f"""
 You are a banking complaint classification engine.
 
 STRICT RULES:
-- Output ONLY a valid JSON object
+- Output ONLY valid JSON
 - Do NOT include explanations, markdown, or backticks
 - Do NOT include any text outside JSON
 
-The JSON schema MUST include:
+JSON Schema:
 {{
   "category": "string",
   "sub_category": "string",
   "product_or_service": "string",
   "urgency": "Low | Medium | High",
   "confidence": number,
-  "summary": "string (2-3 line summary of complaint)",
-  "theme": "string (main topic/theme of complaint)"
+  "summary": "string (2-3 line summary)",
+  "theme": "string (main topic/theme)"
 }}
 
 Complaint:
@@ -82,14 +98,8 @@ Complaint:
             response = client.chat.completions.create(
                 model=MODEL,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a strict JSON-only banking domain classifier and summarizer."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    {"role": "system", "content": "You are a strict JSON-only banking classifier and summarizer."},
+                    {"role": "user", "content": prompt}
                 ],
                 temperature=0
             )
@@ -100,27 +110,23 @@ Complaint:
                 result = extract_json(raw_output)
             except Exception:
                 st.error("❌ Model returned invalid JSON.")
-                st.write("Raw model output (for debugging):")
                 st.code(raw_output)
                 st.stop()
 
         # -------------------------------
-        # Output Section
+        # Display results in cards
         # -------------------------------
-        st.subheader("📊 Classification Result")
+        st.markdown("<h2 style='text-align:center'>📊 Classification Result</h2>", unsafe_allow_html=True)
 
-        col1, col2 = st.columns(2)
-        col1.text_input("Category", value=result.get("category", ""), disabled=True)
-        col2.text_input("Sub-category", value=result.get("sub_category", ""), disabled=True)
+        # Classification Fields
+        st.markdown("<div class='output-card'><b>Category:</b> {}</div>".format(result.get("category","")), unsafe_allow_html=True)
+        st.markdown("<div class='output-card'><b>Sub-category:</b> {}</div>".format(result.get("sub_category","")), unsafe_allow_html=True)
+        st.markdown("<div class='output-card'><b>Product / Service:</b> {}</div>".format(result.get("product_or_service","")), unsafe_allow_html=True)
+        st.markdown("<div class='output-card'><b>Urgency:</b> {}</div>".format(result.get("urgency","")), unsafe_allow_html=True)
+        st.markdown("<div class='output-card'><b>Confidence Score:</b> {}</div>".format(result.get("confidence","")), unsafe_allow_html=True)
 
-        col3, col4 = st.columns(2)
-        col3.text_input("Product / Service", value=result.get("product_or_service", ""), disabled=True)
-        col4.text_input("Urgency", value=result.get("urgency", ""), disabled=True)
+        # Summary
+        st.markdown("<div class='output-card'><b>Summary:</b><br>{}</div>".format(result.get("summary","")), unsafe_allow_html=True)
 
-        st.text_input("Confidence Score", value=str(result.get("confidence", "")), disabled=True)
-
-        st.subheader("📝 Summary")
-        st.text_area("Summary (2-3 lines)", value=result.get("summary", ""), height=100, disabled=True)
-
-        st.subheader("🎯 Theme")
-        st.text_input("Theme / Main Topic", value=result.get("theme", ""), disabled=True)
+        # Theme
+        st.markdown("<div class='output-card'><b>Theme:</b> {}</div>".format(result.get("theme","")), unsafe_allow_html=True)
